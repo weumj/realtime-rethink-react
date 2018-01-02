@@ -8,3 +8,5 @@ export const subscribeToDrawings = () => new Promise(r => {
 });
 
 export const createDrawing = name => socket.emit("createDrawing", {name});
+
+export const publishLine = ({drawingId, line}) => socket.emit("publishLine", {drawingId, ...line});
