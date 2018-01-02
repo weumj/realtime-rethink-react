@@ -8,10 +8,9 @@ class Drawing extends Component {
     };
 
     componentDidMount() {
-        subscribeToDrawingLines(this.props.drawing.id)
-            .then(linesEvent => this.state(prevState => ({
-                lines: [...prevState.lines, ...linesEvent.lines],
-            })));
+        subscribeToDrawingLines(this.props.drawing.id, linesEvent => this.state(prevState => ({
+            lines: [...prevState.lines, ...linesEvent.lines],
+        })));
     }
 
     handleDraw = line => publishLine({

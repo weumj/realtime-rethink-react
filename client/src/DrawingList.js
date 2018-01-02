@@ -5,8 +5,7 @@ export default class DrawingList extends Component {
     constructor(props){
         super(props);
 
-        subscribeToDrawings()
-        .then(drawing => this.setState(prev => ({
+        subscribeToDrawings(drawing => this.setState(prev => ({
             drawings: prev.drawings.concat([drawing]),
         })));
     }
