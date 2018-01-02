@@ -1,5 +1,7 @@
 import openSocket from "socket.io-client";
 import Rx from "rxjs/Rx";
+import createSync from "rxsync";
+import { setTimeout } from "timers";
 
 const port = parseInt(window.location.search.replace("?", ""), 10) || 8000;
 const socket = openSocket(`http://localhost:${port}`);
@@ -11,7 +13,31 @@ export const subscribeToDrawings = (cb) => {
 
 export const createDrawing = name => socket.emit("createDrawing", {name});
 
-export const publishLine = ({drawingId, line}) => socket.emit("publishLine", {drawingId, ...line});
+const sync = createSync({
+    maxRetries: 10,
+    delayBetweenRetries: 1000,
+    syncAction: line => new Promise((r, reject) => {
+        let sent = false;
+
+        socket.emit("publishLine", line, () => {
+            sent = true;
+            r();
+        });
+
+        setTimeout(() => {
+            if(!sent) {
+                reject();
+            }
+        }, 2000);
+    }),
+})
+
+sync.failedItems.subscribe(x => console.error("failed line sync ", x))
+sync.syncedItems.subscribe(x => console.log("line synced ", x));
+
+export const publishLine = ({drawingId, line}) =>
+    sync.queue({drawingId, ...line});
+    // socket.emit("publishLine", {drawingId, ...line});
 
 export const subscribeToDrawingLines = (drawingId, cb) => {
     const line$ = Rx.Observable.fromEventPattern(
