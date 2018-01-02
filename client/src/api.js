@@ -19,13 +19,30 @@ export const subscribeToDrawingLines = (drawingId, cb) => {
         h => socket.off(`drawingLine:${drawingId}`, h),
     );
 
-    line$.bufferTime(100)
-        .map(lines => ({lines}))
-        .subscribe(
-            linesEvent => cb(linesEvent)
-        );
+    const bufferedLine$ = line$.bufferTime(100)
+        .map(lines => ({lines}));
 
-    socket.emit("subscribeToDrawingLines");
+    const reconnect$ = Rx.Observable.fromEventPattern(
+        h => socket.on("connect", h),
+        h => socket.off("connect", h),
+    );
+
+    const max$ = line$.map(l => +new Date(l.timeStamp))
+        .scan((a, b) => Math.max(a, b), 0);
+
+    reconnect$.withLatestFrom(max$)
+    .subscribe(joined => {
+        const lastReceivedTimstamp = joined[1];
+        socket.emit("subscribeToDrawingLines", {
+            drawingId,
+            from: lastReceivedTimstamp,
+        });
+    });
+    
+    bufferedLine$.subscribe(
+        linesEvent => cb(linesEvent)
+    );
+    socket.emit("subscribeToDrawingLines", {drawingId});
 };
 
 export const subscribeToConnectionEvent = cb => {
